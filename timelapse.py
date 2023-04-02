@@ -5,6 +5,12 @@ import re
 import subprocess
 import sys
 
+def datetime_range(start, end, delta):
+    current = start
+    while current <= end:
+        yield current
+        current += delta
+
 def get_recent_monday():
     today = datetime.date.today()
     return today - datetime.timedelta(days=today.weekday())

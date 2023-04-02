@@ -1,4 +1,8 @@
-Works great! More requested changes:
-- Add a `--no-copy` flag to skip the transferring of files, and assume they're already transferred.
-- Have the ffmpeg command generate a 60fps video.
-- Don't print out every single filename we end up transferring, but still do print out all the other existing output and keep the same verbosity otherwise.
+drew@drew Timelapse % python3 timelapse.py --start 12:15 --end 12:44 --days 1 --no-video
+Destination directory: /Users/drew/Projects/Timelapse/2023_03_27-2023_03_27
+Syncing photos for 2023-03-27 between 12:15 and 12:44
+Traceback (most recent call last):
+  File "/Users/drew/Projects/Timelapse/timelapse.py", line 42, in <module>
+    include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=1))]
+                                                                                     ^^^^^^^^^^^^^^
+NameError: name 'datetime_range' is not defined
