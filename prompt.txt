@@ -1,41 +1,21 @@
-It still doesn't work.
+It finally works! For my test command as shown above, it copies the files and finishes with the output:
 
-I asked another ChatGPT-3.5 instance to explain the rsync command as run in my test run and it explains the `--include` arg as the following:
-
-> `01_2023-03-27_12-15-?-*..12-44-?-*.jpg is a pattern that specifies which files to include. This pattern matches all files with names that start with "01_2023-03-27_12-15-" followed by a single character, then any number of characters, then "..12-44-" followed by a single character, and ending with ".jpg". This will match all files with names like "01_2023-03-27_12-15-1-foo..12-44-3-bar.jpg" and "01_2023-03-27_12-15-a-b..12-44-c-d.jpg".
-
-Do you see where this is wrong? For the example command (`--start 12:15 --end 12:44 --days 1`) the expected set of files transferred would be:
 ```
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-15-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-16-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-17-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-18-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-19-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-20-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-21-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-22-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-23-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-24-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-25-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-26-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-27-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-28-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-29-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-30-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-31-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-32-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-33-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-34-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-35-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-36-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-37-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-38-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-39-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-40-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-41-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-42-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-43-00.jpg
-/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-44-00.jpg
+sent 15975874 bytes  received 680 bytes  541578.10 bytes/sec
+total size is 15971885  speedup is 1.00
+
+Transferred 30 files for 2023-03-27
+Total files transferred: 30
 ```
 
-Once you figure it out, fix the code
+Thanks. Now, the rsync command it generates is pretty lengthy having an `--include` for each specific file. I'm thinking it might be better to still have one rsync command per day, but have a more optimized `--include` pattern? This might not actually be possible to be more concise and yet still correct, so let me know if you can't think of any improvement there.
+
+ALSO: Make the following changes:
+- Still create the top-level directory for the date range, but store the photos in a child directory within called "stills".
+- During the transfer, if it fails for any reason (e.g. the network drive is unavailable), print a suitable error message to stderr.
+- Once all photos are transferred (and if the expected number of photos were transferred and there were no errors), run an ffmpeg command to generate a timelapse from it.
+  - The timelapse should be saved as an mov file inside the top directory (next to "stills") with the same filename as the top directory's name, prefixed with "timelapse_". Example: "timelapse_2023_03_01-2023_03_08.mov".
+  - The timelapse should be 1080p, which is the same as the jpegs.
+  - The codec should be H.264.
+  - Run fmpeg verbosely.
+  - Don't do the ffmpeg step at all if we pass in the launch param "--no-video"

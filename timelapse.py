@@ -11,6 +11,7 @@ parser.add_argument("--date", type=str, help="First date to copy photos from in 
 parser.add_argument("--days", type=int, default=5, help="Number of days from the --date to copy photos from, inclusive. Default: 5")
 parser.add_argument("--start", type=str, required=True, help="Time of the first photo to copy for each day in HH:MM (24hr time), inclusive.")
 parser.add_argument("--end", type=str, required=True, help="Time of the last photo to copy for each day in HH:MM (24hr time), inclusive.")
+parser.add_argument("--no-video", action="store_true", help="Skip the ffmpeg step to generate a timelapse video.")
 
 args = parser.parse_args()
 
@@ -24,6 +25,9 @@ else:
 # Create destination directory
 dest_dir = os.path.join(os.getcwd(), f"{start_date.strftime('%Y_%m_%d')}-{(start_date + timedelta(days=args.days - 1)).strftime('%Y_%m_%d')}")
 os.makedirs(dest_dir, exist_ok=True)
+
+stills_dir = os.path.join(dest_dir, "stills")
+os.makedirs(stills_dir, exist_ok=True)
 
 print(f"Destination directory: {dest_dir}")
 
@@ -52,13 +56,18 @@ for i in range(args.days):
         *include_patterns,
         "--exclude", "*",
         src_dir + "/",  # Add trailing slash to sync files within directory
-        dest_dir
+        stills_dir
     ]
 
     print(f"Source directory: {src_dir}")
     print(f"Rsync command: {' '.join(rsync_cmd)}")
     print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
     result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"Error: {result.stderr}", file=sys.stderr)
+        sys.exit(1)
+
     print(result.stdout)
 
     # Parse the output to get the number of transferred files
@@ -67,4 +76,32 @@ for i in range(args.days):
     print(f"Transferred {transferred_files} files for {date_str}")
 
 print(f"Total files transferred: {total_files_transferred}")
+
+if not args.no_video:
+    # Create timelapse using ffmpeg
+    video_filename = f"timelapse_{os.path.basename(dest_dir)}.mov"
+    video_path = os.path.join(dest_dir, video_filename)
+
+    ffmpeg_cmd = [
+        "ffmpeg",
+        "-y",  # Overwrite existing files
+        "-pattern_type", "glob",
+        "-i", f"{stills_dir}/*.jpg",
+        "-vf", "scale=1920:1080",
+        "-vcodec", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-crf", "18",
+        "-preset", "slow",
+        video_path
+    ]
+
+    print(f"Running ffmpeg to create timelapse video: {' '.join(ffmpeg_cmd)}")
+    ffmpeg_result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+
+    if ffmpeg_result.returncode != 0:
+        print(f"Error: {ffmpeg_result.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Timelapse video saved as {video_path}")
+
 
