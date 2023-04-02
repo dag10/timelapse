@@ -1,18 +1,41 @@
-I ran this and it spend ~30sec and outputted the following, but no photos were copied over into the directory:
+It still doesn't work.
 
+I asked another ChatGPT-3.5 instance to explain the rsync command as run in my test run and it explains the `--include` arg as the following:
+
+> `01_2023-03-27_12-15-?-*..12-44-?-*.jpg is a pattern that specifies which files to include. This pattern matches all files with names that start with "01_2023-03-27_12-15-" followed by a single character, then any number of characters, then "..12-44-" followed by a single character, and ending with ".jpg". This will match all files with names like "01_2023-03-27_12-15-1-foo..12-44-3-bar.jpg" and "01_2023-03-27_12-15-a-b..12-44-c-d.jpg".
+
+Do you see where this is wrong? For the example command (`--start 12:15 --end 12:44 --days 1`) the expected set of files transferred would be:
 ```
-drew@drew Timelapse % python3 timelapse.py --start 12:15 --end 12:44 --days 1
-Destination directory: /Users/drew/Projects/Timelapse/2023_03_27-2023_03_27
-Syncing photos for 2023-03-27 between 12:15 and 12:44
-building file list ... done
-./
-
-sent 77 bytes  received 26 bytes  3.89 bytes/sec
-total size is 0  speedup is 0.00
-
-Transferred 0 files for 2023-03-27
-Total files transferred: 0
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-15-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-16-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-17-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-18-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-19-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-20-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-21-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-22-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-23-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-24-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-25-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-26-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-27-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-28-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-29-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-30-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-31-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-32-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-33-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-34-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-35-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-36-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-37-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-38-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-39-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-40-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-41-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-42-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-43-00.jpg
+/Volumes/DrewHA/Webcam/2023-03-27/01_2023-03-27_12-44-00.jpg
 ```
 
-Have it additionally output all source directories, print out the rsync command it will run, and have it run rsync verbosely.
-
+Once you figure it out, fix the code

@@ -35,17 +35,22 @@ for i in range(args.days):
     date_str = date.strftime("%Y-%m-%d")
     src_dir = f"/Volumes/DrewHA/Webcam/{date_str}"
 
-    start_time = datetime.strptime(args.start, "%H:%M").time()
-    end_time = datetime.strptime(args.end, "%H:%M").time()
+    start_time = datetime.strptime(args.start, "%H:%M")
+    end_time = datetime.strptime(args.end, "%H:%M")
 
-    include_pattern = f"01_{date_str}_{start_time.strftime('%H-%M')}-?-*..{end_time.strftime('%H-%M')}-?-*.jpg"
-    exclude_pattern = "*"
+    # Generate list of include patterns for each minute within the desired time range
+    current_time = start_time
+    include_patterns = []
+    while current_time <= end_time:
+        include_pattern = f"01_{date_str}_{current_time.strftime('%H-%M')}-??.jpg"
+        include_patterns.extend(["--include", include_pattern])
+        current_time += timedelta(minutes=1)
 
     rsync_cmd = [
         "rsync",
         "-avm",
-        "--include", include_pattern,
-        "--exclude", exclude_pattern,
+        *include_patterns,
+        "--exclude", "*",
         src_dir + "/",  # Add trailing slash to sync files within directory
         dest_dir
     ]
