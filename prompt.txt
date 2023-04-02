@@ -1,0 +1,30 @@
+I need you to write a python script for me to help automate something I do every week. I have an outdoors webcam hooked up to a network server that saves one photo every minute. Once a week I like to make a timelapse video out of it using Quicktime, which is fairly easy to do if you have all the still frames of the timelapse in one single directory. I need your help making a python script that'll, based on some parameters, copy all the necessary photos from the network drive into a local directory, so that I can then easily make a timelapse of it (don't need your help with that part).
+
+The network server keeps images mounted at this location on my mac:
+/Volumes/DrewHA/Webcam
+
+Inside it is one directory for each day, in the format "YYYY-MM-DD".
+
+Inside each daily directory the photos are stored in the format: "01_YYYY-MM-DD_HH-MM-SS.jpg" (HH is 24-hr time, and yes it always starts with the prefix "01_")
+
+For example, the full path of one image from February 16, 2023 at 12:09 AM is:
+/Volumes/DrewHA/Webcam/2023-02-16/01_2023-02-16_00-09-00.jpg
+
+For the python script, I want it to have the following parameters:
+python3 timelapse.py --date 2023-04-03 --days 5 --start 7:30 --end 19:30
+
+Explanation of parameters:
+ - `--date YYYY-MM-DD` First date to copy photos from.
+   Default: The most recent Monday as of running the script.
+ - `--days N` Number of days from the `--date` to copy photos from, inclusive.
+   If you pass 2, for example, it'll copy the date provided and the following day's photos.
+   Default: 5
+ - `--start HH:MM` Time of the first photo to copy for each day, inclusive. 24hr time. Required.
+ - `--end HH:MM` Time of the last photo to copy for each day, inclusive. 24hr time. Required.
+
+If ran with no parameters, it explains all the parameters.
+
+The script will first create a new directory next to the script location with the name "2023_02_16-2023_02_20" if ran with the parameters `--date 2023-02-16 --days 5` for example. If it already exists you can use the existing directory.
+
+Then it'll `rsync` all the photos using the rules I outlined above. Use `rsync` instead of `cp` so that if it fails (it's a lot of photos, the network server might crap out) I can re-run the script again and it'll pick up where it left off for free.
+
