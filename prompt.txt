@@ -1,1 +1,18 @@
-Modify it to be more verbose, and at the end tell me out many files it ended up transferring on this run.
+I ran this and it spend ~30sec and outputted the following, but no photos were copied over into the directory:
+
+```
+drew@drew Timelapse % python3 timelapse.py --start 12:15 --end 12:44 --days 1
+Destination directory: /Users/drew/Projects/Timelapse/2023_03_27-2023_03_27
+Syncing photos for 2023-03-27 between 12:15 and 12:44
+building file list ... done
+./
+
+sent 77 bytes  received 26 bytes  3.89 bytes/sec
+total size is 0  speedup is 0.00
+
+Transferred 0 files for 2023-03-27
+Total files transferred: 0
+```
+
+Have it additionally output all source directories, print out the rsync command it will run, and have it run rsync verbosely.
+

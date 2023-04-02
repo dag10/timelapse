@@ -50,6 +50,8 @@ for i in range(args.days):
         dest_dir
     ]
 
+    print(f"Source directory: {src_dir}")
+    print(f"Rsync command: {' '.join(rsync_cmd)}")
     print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
     result = subprocess.run(rsync_cmd, capture_output=True, text=True)
     print(result.stdout)
