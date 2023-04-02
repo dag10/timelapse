@@ -3,6 +3,7 @@ import argparse
 import os
 from datetime import datetime, timedelta
 import subprocess
+import re
 
 # Define command line arguments
 parser = argparse.ArgumentParser(description="Create timelapse from webcam photos.")
@@ -23,6 +24,10 @@ else:
 # Create destination directory
 dest_dir = os.path.join(os.getcwd(), f"{start_date.strftime('%Y_%m_%d')}-{(start_date + timedelta(days=args.days - 1)).strftime('%Y_%m_%d')}")
 os.makedirs(dest_dir, exist_ok=True)
+
+print(f"Destination directory: {dest_dir}")
+
+total_files_transferred = 0
 
 # Iterate through days and sync photos
 for i in range(args.days):
@@ -45,5 +50,14 @@ for i in range(args.days):
         dest_dir
     ]
 
-    subprocess.run(rsync_cmd)
+    print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
+    result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+    print(result.stdout)
+
+    # Parse the output to get the number of transferred files
+    transferred_files = len(re.findall(r"01_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}.jpg", result.stdout))
+    total_files_transferred += transferred_files
+    print(f"Transferred {transferred_files} files for {date_str}")
+
+print(f"Total files transferred: {total_files_transferred}")
 
