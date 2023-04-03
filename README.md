@@ -65,6 +65,7 @@ python3 timelapse.py --date 2023-03-27 --days 1 --start 07:30 --end 19:30
 | `--end`    | The time of the last photo to copy for each day, inclusive | one hour after sunset | 24hr format |
 | `--no-video` | If set, the script will only transfer files and not create a timelapse video | N/A | flag |
 | `--no-copy`  | If set, the script will not transfer files, assuming they're already transferred | N/A | flag |
+| `--no-upload` | If set, the script will not upload the video to YouTube | N/A | flag |
 
 ## To set up Youtube uploading
 
