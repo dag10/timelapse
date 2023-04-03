@@ -85,7 +85,7 @@ if not args.no_video:
 
     ffmpeg_cmd = [
         "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", temp_file.name,
-        "-s", "1920x1080", "-r", "60", "-vf", "setpts=PTS/60", "-c:v", "libx264", "-preset", "slow",
+        "-s", "1920x1080", "-r", "60", "-c:v", "libx264", "-preset", "slow",
         "-crf", "18", "-pix_fmt", "yuv420p", video_path
     ]
 
