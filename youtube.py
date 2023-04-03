@@ -40,10 +40,15 @@ def upload_to_youtube(video_path, title, thumbnail_path=None, playlist_id=None):
         if response is not None:
             if "id" in response:
                 print(f"Video uploaded: https://youtu.be/{response['id']}")
+                if playlist_id:
+                    print(f"Added to playlist: https://www.youtube.com/playlist?list={playlist_id}")
+                return response['id']
             else:
                 print("The upload failed with an unexpected response: %s" % response)
+                return None
         else:
             print("Upload failed with status %s" % status)
+            return None
 
     if thumbnail_path:
         video_id = response["id"]
