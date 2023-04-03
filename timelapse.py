@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+from sun import calculate_sunrise, calculate_sunset
 
 def datetime_range(start, end, delta):
     current = start
@@ -18,8 +19,8 @@ def get_recent_monday():
 parser = argparse.ArgumentParser(description="Create timelapse from webcam photos")
 parser.add_argument("--date", type=str, default=get_recent_monday().strftime("%Y-%m-%d"), help="First date to copy photos from (default: most recent Monday)")
 parser.add_argument("--days", type=int, default=5, help="Number of days from the --date to copy photos from, inclusive (default: 5)")
-parser.add_argument("--start", type=str, required=True, help="Time of the first photo to copy for each day, inclusive (24hr format)")
-parser.add_argument("--end", type=str, required=True, help="Time of the last photo to copy for each day, inclusive (24hr format)")
+parser.add_argument("--start", type=str, help="Time of the first photo to copy for each day, inclusive (24hr format)")
+parser.add_argument("--end", type=str, help="Time of the last photo to copy for each day, inclusive (24hr format)")
 parser.add_argument("--no-video", action="store_true", help="Don't create timelapse video")
 parser.add_argument("--no-copy", action="store_true", help="Don't transfer files, assume they're already transferred")
 args = parser.parse_args()
@@ -41,6 +42,11 @@ for i in range(args.days):
     date = start_date + datetime.timedelta(days=i)
     date_str = date.strftime("%Y-%m-%d")
     src_dir = f"/Volumes/DrewHA/Webcam/{date_str}"
+
+    if not args.start:
+        args.start = calculate_sunrise(date)
+    if not args.end:
+        args.end = calculate_sunset(date)
 
     if not args.no_copy:
         print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
@@ -70,7 +76,7 @@ if not args.no_video:
 
     ffmpeg_cmd = [
         "ffmpeg", "-y", "-pattern_type", "glob", "-i", f"{stills_dir}/01_*.jpg",
-        "-s", "1920x1080", "-r", "60", "-c:v", "libx264", "-preset", "slow",
+        "-s", "1920x1080", "-r", "60", "-vf", "setpts=PTS/60", "-c:v", "libx264", "-preset", "slow",
         "-crf", "18", "-pix_fmt", "yuv420p", video_path
     ]
 
