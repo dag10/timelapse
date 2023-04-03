@@ -45,9 +45,13 @@ for i in range(args.days):
     src_dir = f"/Volumes/DrewHA/Webcam/{date_str}"
 
     if not args.start:
-        args.start = calculate_sunrise(date)
+        sunrise = calculate_sunrise(date)
+        sunrise_time = datetime.datetime.strptime(sunrise, "%H:%M")
+        args.start = (sunrise_time - datetime.timedelta(hours=1)).strftime("%H:%M")
     if not args.end:
-        args.end = calculate_sunset(date)
+        sunset = calculate_sunset(date)
+        sunset_time = datetime.datetime.strptime(sunset, "%H:%M")
+        args.end = (sunset_time + datetime.timedelta(hours=1)).strftime("%H:%M")
 
     if not args.no_copy:
         print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
@@ -84,8 +88,8 @@ if not args.no_video:
     video_path = os.path.join(dest_dir, video_filename)
 
     ffmpeg_cmd = [
-        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-pattern_type", "glob", "-i", f"{stills_dir}/01_*.jpg",
-        "-vcodec", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
+        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{stills_dir}/%*.jpg",
+        "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
     ]
 
     print(f"Running ffmpeg: {' '.join(ffmpeg_cmd)}")
@@ -96,4 +100,8 @@ if not args.no_video:
         sys.exit(1)
 
     print(f"Timelapse video created: {video_path}")
+
+    # Open the video using the system's 'open' command
+    open_cmd = ["open", video_path]
+    subprocess.run(open_cmd)
 

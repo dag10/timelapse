@@ -1,29 +1,8 @@
-Unfortunately now we're back to the video being 60fps technically but doubling each frame 2-3 times resulting in an apparent 25fps.
+Great! Timelapse generation is perfect now.
 
-As a LLM, you might be getting stuck in a local minimum of an ffmpeg solution due to all the context of our chat so far.
+Some more changes:
+- When using sunrise for the start time, actually use exactly one hour _before_ that day's sunrise.
+- Same thing for sunset, but one hour later.
+- When a video file is successfully generated, open it using my system's `open` command.
 
-I asked a clean ChatGPT instance with no context the following question:
-```
-Create an ffmpeg command to take a folder (called stills) that contains exactly 60 jpg images (at 1080p) and outputs a mov file (H.264) with those images as frames, each image as exactly one frame. The output video should be 1080p too, 60fps, and the images should be used according to alphabetical order of filenames.
-```
-
-That instance responded with the following answer:
-```
-You can use the following ffmpeg command to achieve your task:
-
-ffmpeg -r 60 -f image2 -s 1920x1080 -i stills/%*.jpg -vcodec libx264 -crf 18 -pix_fmt yuv420p output.mov
-
-Let me explain the options used in the above command:
-
--r 60: Sets the frame rate to 60 frames per second.
--f image2: Tells ffmpeg that we're using a sequence of images as input.
--s 1920x1080: Sets the frame size to 1080p (1920x1080).
--i stills/%*.jpg: Specifies the input image sequence. %*.jpg ensures that ffmpeg takes all the images in alphabetical order of filenames from the stills folder.
--vcodec libx264: Sets the video codec to H.264.
--crf 18: Sets the Constant Rate Factor (CRF) to 18, which determines the quality of the output video. Lower values result in better quality but larger file sizes.
--pix_fmt yuv420p: Sets the pixel format to yuv420p, which is a widely compatible pixel format for H.264 videos.
-output.mov: Specifies the output file name and format.
-After running the command, ffmpeg will take the 60 images from the stills folder and use them as frames to create a video with the specified settings. The output video will be saved in the same directory as the input images.
-```
-
-I have no idea if that answer is accurate but use that answer to edit our ffmpeg_command to hopefully do the correct thing now.
+Output the entire updated timelapse.py
