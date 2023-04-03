@@ -15,7 +15,7 @@ def get_credentials():
     credentials = Credentials.from_authorized_user_info(info=config)
     return credentials
 
-def upload_to_youtube(video_path, title, thumbnail_path=None):
+def upload_to_youtube(video_path, title, thumbnail_path=None, playlist_id=None):
     credentials = get_credentials()
     youtube = build("youtube", "v3", credentials=credentials)
 
@@ -50,12 +50,26 @@ def upload_to_youtube(video_path, title, thumbnail_path=None):
         media = MediaFileUpload(thumbnail_path, mimetype="image/jpeg")
         youtube.thumbnails().set(videoId=video_id, media_body=media).execute()
 
+    if playlist_id:
+        video_id = response["id"]
+        body = {
+            "snippet": {
+                "playlistId": playlist_id,
+                "resourceId": {
+                    "kind": "youtube#video",
+                    "videoId": video_id
+                }
+            }
+        }
+        youtube.playlistItems().insert(part="snippet", body=body).execute()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Upload a video to YouTube")
     parser.add_argument("path", help="Path to the video file")
     parser.add_argument("title", help="Title of the video")
     parser.add_argument("--thumbnail", help="Path to the thumbnail image (optional)", default=None)
+    parser.add_argument("--playlist", help="Playlist ID to add the video to (optional)", default=None)
     args = parser.parse_args()
 
-    upload_to_youtube(args.path, args.title, args.thumbnail)
+    upload_to_youtube(args.path, args.title, args.thumbnail, args.playlist)
 
