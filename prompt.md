@@ -1,13 +1,10 @@
-Let's create a new file called youtube.py. I'd like it to have at least one top level function:
+Now let's make some more changes to youtube.py.
+
+For uploading a youtube thumbnail, is that doable from the upload_to_youtube function? e.g.
 ```
-def upload_to_youtube( path, title ):
+def upload_to_youtube(video_path, title, thumbnail_path=None):
 ```
 
-Also, if the script is executed directly, it should call that function passing in the launch arg as the `path` parameter.
+If so, add the `thumbnail_path` parameter (and support passing that as a launch arg) and have that work. The input file will be a 1080p jpeg, hopefully that's supported by the API.
 
-This function should upload the video at the `path` to youtube.
-- It should be Unlisted by default
-- It should have the title passed in to the function as `title`
-- Be fairly verbose with the upload, and any tools it calls out to should be fairly verbose if possible.
-
-Any credentials needed to perform this upload should be read out of a file called `config.json`. Give me an example config.json too.
+Oh and one more change, when the script outputs "Video uploaded with ID: {video_id}", have it instead output "Video uploaded: https://youtu.be/{video_id}"
