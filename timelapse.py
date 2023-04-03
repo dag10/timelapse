@@ -90,6 +90,10 @@ for i in range(args.days):
 
 print(f"Total files transferred: {total_files_transferred}")
 
+# Create timelapse using ffmpeg
+video_filename = f"timelapse_{os.path.basename(dest_dir)}.mov"
+video_path = os.path.join(dest_dir, video_filename)
+
 if not args.no_video:
     # Read and sort the filenames
     input_files = sorted(os.listdir(stills_dir))
@@ -98,10 +102,6 @@ if not args.no_video:
     with tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
         for file in input_files:
             temp_file.write(f"file '{os.path.join(stills_dir, file)}'\n")
-
-    # Create timelapse using ffmpeg
-    video_filename = f"timelapse_{os.path.basename(dest_dir)}.mov"
-    video_path = os.path.join(dest_dir, video_filename)
 
     ffmpeg_cmd = [
         "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{stills_dir}/%*.jpg",
