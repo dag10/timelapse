@@ -120,23 +120,22 @@ if not args.no_video:
     open_cmd = ["open", video_path]
     subprocess.run(open_cmd)
 
-    if not args.no_upload:
-        if confirm("Do you want to upload the video to YouTube? [Y/n]: "):
-            # Find thumbnail for the first day's midpoint
-            first_day_midpoint = (datetime.datetime.strptime(args.start, "%H:%M") + datetime.datetime.strptime(args.end, "%H:%M")) // 2
-            thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
-            thumbnail_path = os.path.join(stills_dir, thumbnail_filename)
-            print(f"Using thumbnail: {thumbnail_path}")
-            sys.exit(1) # TMP
+if not args.no_upload:
+    if confirm("Do you want to upload the video to YouTube? [Y/n]: "):
+        # Find thumbnail for the first day's midpoint
+        first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(args.start, "%H:%M").time()) + (datetime.datetime.strptime(args.end, "%H:%M") - datetime.datetime.strptime(args.start, "%H:%M")) // 2).time()
+        thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
+        thumbnail_path = os.path.join(stills_dir, thumbnail_filename)
+        print(f"Using thumbnail: {thumbnail_path}")
 
-            # Upload the video to YouTube
-            video_title = VIDEO_TITLE_FORMAT.format(start_date=start_date.strftime("%Y.%m.%d"), end_date=end_date.strftime("%Y.%m.%d"))
-            print(f"Uploading video to YouTube with title: {video_title}")
-            video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
+        # Upload the video to YouTube
+        video_title = VIDEO_TITLE_FORMAT.format(start_date=start_date.strftime("%Y.%m.%d"), end_date=end_date.strftime("%Y.%m.%d"))
+        print(f"Uploading video to YouTube with title: {video_title}")
+        video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
 
-            if video_id:
-                print(f"Video uploaded successfully. Video ID: {video_id}")
-            else:
-                print("Failed to upload video.", file=sys.stderr)
-                sys.exit(1)
+        if video_id:
+            print(f"Video uploaded successfully. Video ID: {video_id}")
+        else:
+            print("Failed to upload video.", file=sys.stderr)
+            sys.exit(1)
 

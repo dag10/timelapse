@@ -1,123 +1,24 @@
-Great. Youtube.py works great!
+Error:
 
-Now we're gonna put it all together with just some changes to timelapse.py. Update timelapse.py to:
-- Have a final step after ffmpeg video generation: uploading to youtube.
-- Add a `--no-upload` launch arg to skip the uploading step.
-- We only do the uploading step if we had no failures during either the copying or the video generation steps (or if those steps were suppressed due to launch args).
-- The uploading step begins after the `open` command is executed. But after `open` is executed and before we upload, we confirm with the user in the terminal that they want to upload it, with a Y/n prompt. `n` skips uploading and exists, `Y` (or enter) proceeds with the upload.
-- Once the user confirms, before we upload, we need to choose which file will be the thumbnail. This should be the jpg in the stills dir that is the midpoint between the `start` and `end` ranges of the very first day in the sample. Also output the chosen thumbnail path to the user.
-- The video is uploaded using the `upload_to_youtube` function from youtube.py.
-- Use the title "2023.03.06 - 2023.03.10 Construction Timelapse", except using the correct date range of the timelapse of course.
-- Add it to the playlist with id "PLnZFyIYD4hEnHwQw7_4GVGhtO-Qk8iXtt"
-- Store the format string for the title, as well as the playlist_id, and honestly even the existing "/Volumes/DrewHA/Webcam/" as variables near the top of timelapse.py for easy editing.
-
-For reference, here's the entire timelapse.py as it is right now:
 ```
-import argparse
-import datetime
-import os
-import re
-import subprocess
-import sys
-import tempfile
-from sun import calculate_sunrise, calculate_sunset
-
-def datetime_range(start, end, delta):
-    current = start
-    while current <= end:
-        yield current
-        current += delta
-
-def get_recent_monday():
-    today = datetime.date.today()
-    return today - datetime.timedelta(days=today.weekday())
-
-parser = argparse.ArgumentParser(description="Create timelapse from webcam photos")
-parser.add_argument("--date", type=str, default=get_recent_monday().strftime("%Y-%m-%d"), help="First date to copy photos from (default: most recent Monday)")
-parser.add_argument("--days", type=int, default=5, help="Number of days from the --date to copy photos from, inclusive (default: 5)")
-parser.add_argument("--start", type=str, help="Time of the first photo to copy for each day, inclusive (24hr format)")
-parser.add_argument("--end", type=str, help="Time of the last photo to copy for each day, inclusive (24hr format)")
-parser.add_argument("--no-video", action="store_true", help="Don't create timelapse video")
-parser.add_argument("--no-copy", action="store_true", help="Don't transfer files, assume they're already transferred")
-args = parser.parse_args()
-
-start_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
-end_date = start_date + datetime.timedelta(days=args.days - 1)
-dest_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{start_date.strftime('%Y_%m_%d')}-{end_date.strftime('%Y_%m_%d')}")
-stills_dir = os.path.join(dest_dir, "stills")
-
-if not os.path.exists(dest_dir):
-    os.makedirs(dest_dir)
-if not os.path.exists(stills_dir):
-    os.makedirs(stills_dir)
-
-print(f"Destination directory: {dest_dir}")
-
-total_files_transferred = 0
-for i in range(args.days):
-    date = start_date + datetime.timedelta(days=i)
-    date_str = date.strftime("%Y-%m-%d")
-    src_dir = f"/Volumes/DrewHA/Webcam/{date_str}"
-
-    if not args.start:
-        sunrise = calculate_sunrise(date)
-        sunrise_time = datetime.datetime.strptime(sunrise, "%H:%M")
-        args.start = (sunrise_time - datetime.timedelta(hours=1)).strftime("%H:%M")
-    if not args.end:
-        sunset = calculate_sunset(date)
-        sunset_time = datetime.datetime.strptime(sunset, "%H:%M")
-        args.end = (sunset_time + datetime.timedelta(hours=1)).strftime("%H:%M")
-
-    if not args.no_copy:
-        print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
-
-        include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=1))]
-        include_args = [f"--include={pattern}" for pattern in include_patterns]
-
-        rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", stills_dir]
-        print(f"Running rsync: {' '.join(rsync_cmd)}")
-        result = subprocess.run(rsync_cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            print(f"Error: {result.stderr}", file=sys.stderr)
-            sys.exit(1)
-
-        # Parse the output to get the number of transferred files
-        transferred_files = len(re.findall(r"01_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}.jpg", result.stdout))
-        total_files_transferred += transferred_files
-        print(f"Transferred {transferred_files} files for {date_str}")
-
-print(f"Total files transferred: {total_files_transferred}")
-
-if not args.no_video:
-    # Read and sort the filenames
-    input_files = sorted(os.listdir(stills_dir))
-
-    # Create a temporary file with the sorted filenames
-    with tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
-        for file in input_files:
-            temp_file.write(f"file '{os.path.join(stills_dir, file)}'\n")
-
-    # Create timelapse using ffmpeg
-    video_filename = f"timelapse_{os.path.basename(dest_dir)}.mov"
-    video_path = os.path.join(dest_dir, video_filename)
-
-    ffmpeg_cmd = [
-        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{stills_dir}/%*.jpg",
-        "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
-    ]
-
-    print(f"Running ffmpeg: {' '.join(ffmpeg_cmd)}")
-    result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print(f"Error: {result.stderr}", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Timelapse video created: {video_path}")
-
-    # Open the video using the system's 'open' command
-    open_cmd = ["open", video_path]
-    subprocess.run(open_cmd)
+(venv) drew@drew Timelapse % python3 timelapse.py --days 2 --date 2023-02-10 --start 10:20 --end 10:50
+Destination directory: /Users/drew/Projects/Timelapse/2023_02_10-2023_02_11
+Syncing photos for 2023-02-10 between 10:20 and 10:50
+Running rsync: rsync -av --no-relative --include=01_2023-02-10_10-20-??.jpg --include=01_2023-02-10_10-21-??.jpg --include=01_2023-02-10_10-22-??.jpg --include=01_2023-02-10_10-23-??.jpg --include=01_2023-02-10_10-24-??.jpg --include=01_2023-02-10_10-25-??.jpg --include=01_2023-02-10_10-26-??.jpg --include=01_2023-02-10_10-27-??.jpg --include=01_2023-02-10_10-28-??.jpg --include=01_2023-02-10_10-29-??.jpg --include=01_2023-02-10_10-30-??.jpg --include=01_2023-02-10_10-31-??.jpg --include=01_2023-02-10_10-32-??.jpg --include=01_2023-02-10_10-33-??.jpg --include=01_2023-02-10_10-34-??.jpg --include=01_2023-02-10_10-35-??.jpg --include=01_2023-02-10_10-36-??.jpg --include=01_2023-02-10_10-37-??.jpg --include=01_2023-02-10_10-38-??.jpg --include=01_2023-02-10_10-39-??.jpg --include=01_2023-02-10_10-40-??.jpg --include=01_2023-02-10_10-41-??.jpg --include=01_2023-02-10_10-42-??.jpg --include=01_2023-02-10_10-43-??.jpg --include=01_2023-02-10_10-44-??.jpg --include=01_2023-02-10_10-45-??.jpg --include=01_2023-02-10_10-46-??.jpg --include=01_2023-02-10_10-47-??.jpg --include=01_2023-02-10_10-48-??.jpg --include=01_2023-02-10_10-49-??.jpg --include=01_2023-02-10_10-50-??.jpg --exclude=* /Volumes/DrewHA/Webcam/2023-02-10/ /Users/drew/Projects/Timelapse/2023_02_10-2023_02_11/stills
+Transferred 31 files for 2023-02-10
+Syncing photos for 2023-02-11 between 10:20 and 10:50
+Running rsync: rsync -av --no-relative --include=01_2023-02-11_10-20-??.jpg --include=01_2023-02-11_10-21-??.jpg --include=01_2023-02-11_10-22-??.jpg --include=01_2023-02-11_10-23-??.jpg --include=01_2023-02-11_10-24-??.jpg --include=01_2023-02-11_10-25-??.jpg --include=01_2023-02-11_10-26-??.jpg --include=01_2023-02-11_10-27-??.jpg --include=01_2023-02-11_10-28-??.jpg --include=01_2023-02-11_10-29-??.jpg --include=01_2023-02-11_10-30-??.jpg --include=01_2023-02-11_10-31-??.jpg --include=01_2023-02-11_10-32-??.jpg --include=01_2023-02-11_10-33-??.jpg --include=01_2023-02-11_10-34-??.jpg --include=01_2023-02-11_10-35-??.jpg --include=01_2023-02-11_10-36-??.jpg --include=01_2023-02-11_10-37-??.jpg --include=01_2023-02-11_10-38-??.jpg --include=01_2023-02-11_10-39-??.jpg --include=01_2023-02-11_10-40-??.jpg --include=01_2023-02-11_10-41-??.jpg --include=01_2023-02-11_10-42-??.jpg --include=01_2023-02-11_10-43-??.jpg --include=01_2023-02-11_10-44-??.jpg --include=01_2023-02-11_10-45-??.jpg --include=01_2023-02-11_10-46-??.jpg --include=01_2023-02-11_10-47-??.jpg --include=01_2023-02-11_10-48-??.jpg --include=01_2023-02-11_10-49-??.jpg --include=01_2023-02-11_10-50-??.jpg --exclude=* /Volumes/DrewHA/Webcam/2023-02-11/ /Users/drew/Projects/Timelapse/2023_02_10-2023_02_11/stills
+Transferred 31 files for 2023-02-11
+Total files transferred: 62
+Running ffmpeg: ffmpeg -y -r 60 -f image2 -s 1920x1080 -i /Users/drew/Projects/Timelapse/2023_02_10-2023_02_11/stills/%*.jpg -c:v libx264 -crf 18 -pix_fmt yuv420p /Users/drew/Projects/Timelapse/2023_02_10-2023_02_11/timelapse_2023_02_10-2023_02_11.mov
+Timelapse video created: /Users/drew/Projects/Timelapse/2023_02_10-2023_02_11/timelapse_2023_02_10-2023_02_11.mov
+Do you want to upload the video to YouTube? [Y/n]:
+Traceback (most recent call last):
+  File "/Users/drew/Projects/Timelapse/timelapse.py", line 126, in <module>
+    first_day_midpoint = (datetime.datetime.strptime(args.start, "%H:%M") + datetime.datetime.strptime(args.end, "%H:%M")) // 2
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for +: 'datetime.datetime' and 'datetime.datetime'
 ```
+
+How do we fix it? Also outdent everything after `if not args.no_upload:` so that we can still upload even with `--no-video`.
 
