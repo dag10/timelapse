@@ -1,10 +1,13 @@
-Generate a README.md for the project. It should have the same standard markdown format as normal github readmes, and should have a description of what the project is and what it can do, how to use it, and what the args are. Call the project "Construction Timelapse Generator"
+Let's create a new file called youtube.py. I'd like it to have at least one top level function:
+```
+def upload_to_youtube( path, title ):
+```
 
----
+Also, if the script is executed directly, it should call that function passing in the launch arg as the `path` parameter.
 
-I want to use venv for this project. Identify the pip3 dependencies it uses, and add instructions for both setting up and utilizing the virtual env. I believe this process involves another file I'll need to add to the project. Output that file separately from the README.md.
+This function should upload the video at the `path` to youtube.
+- It should be Unlisted by default
+- It should have the title passed in to the function as `title`
+- Be fairly verbose with the upload, and any tools it calls out to should be fairly verbose if possible.
 
-Also: In the README. md, format the arguments as a table instead of as a list. Remove the license section.
-
-Output all of README.md inside one code block (three backticks). For the codeblocks _inside_ the readme, escape them by replacing those triple-backticks with XXX. Also, the file I'll need to add for the virtual env should also be written out in a code block.
-
+Any credentials needed to perform this upload should be read out of a file called `config.json`. Give me an example config.json too.

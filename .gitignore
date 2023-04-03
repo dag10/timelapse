@@ -10,3 +10,6 @@
 
 venv
 
+config.json
+client_secret.json
+
