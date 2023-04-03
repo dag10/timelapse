@@ -84,9 +84,8 @@ if not args.no_video:
     video_path = os.path.join(dest_dir, video_filename)
 
     ffmpeg_cmd = [
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", temp_file.name,
-        "-s", "1920x1080", "-r", "60", "-c:v", "libx264", "-preset", "slow",
-        "-crf", "18", "-pix_fmt", "yuv420p", video_path
+        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-pattern_type", "glob", "-i", f"{stills_dir}/01_*.jpg",
+        "-vcodec", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
     ]
 
     print(f"Running ffmpeg: {' '.join(ffmpeg_cmd)}")
