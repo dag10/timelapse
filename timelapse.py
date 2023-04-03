@@ -6,6 +6,12 @@ import subprocess
 import sys
 import tempfile
 from sun import calculate_sunrise, calculate_sunset
+from youtube import upload_to_youtube
+
+# Constants
+BASE_DIR = "/Volumes/DrewHA/Webcam/"
+PLAYLIST_ID = "PLnZFyIYD4hEnHwQw7_4GVGhtO-Qk8iXtt"
+VIDEO_TITLE_FORMAT = "{start_date} - {end_date} Construction Timelapse"
 
 def datetime_range(start, end, delta):
     current = start
@@ -17,6 +23,14 @@ def get_recent_monday():
     today = datetime.date.today()
     return today - datetime.timedelta(days=today.weekday())
 
+def confirm(prompt):
+    while True:
+        response = input(prompt).lower()
+        if response in ["y", "yes", ""]:
+            return True
+        elif response in ["n", "no"]:
+            return False
+
 parser = argparse.ArgumentParser(description="Create timelapse from webcam photos")
 parser.add_argument("--date", type=str, default=get_recent_monday().strftime("%Y-%m-%d"), help="First date to copy photos from (default: most recent Monday)")
 parser.add_argument("--days", type=int, default=5, help="Number of days from the --date to copy photos from, inclusive (default: 5)")
@@ -24,6 +38,7 @@ parser.add_argument("--start", type=str, help="Time of the first photo to copy f
 parser.add_argument("--end", type=str, help="Time of the last photo to copy for each day, inclusive (24hr format)")
 parser.add_argument("--no-video", action="store_true", help="Don't create timelapse video")
 parser.add_argument("--no-copy", action="store_true", help="Don't transfer files, assume they're already transferred")
+parser.add_argument("--no-upload", action="store_true", help="Don't upload the video to YouTube")
 args = parser.parse_args()
 
 start_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
@@ -42,7 +57,7 @@ total_files_transferred = 0
 for i in range(args.days):
     date = start_date + datetime.timedelta(days=i)
     date_str = date.strftime("%Y-%m-%d")
-    src_dir = f"/Volumes/DrewHA/Webcam/{date_str}"
+    src_dir = f"{BASE_DIR}{date_str}"
 
     if not args.start:
         sunrise = calculate_sunrise(date)
@@ -104,4 +119,24 @@ if not args.no_video:
     # Open the video using the system's 'open' command
     open_cmd = ["open", video_path]
     subprocess.run(open_cmd)
+
+    if not args.no_upload:
+        if confirm("Do you want to upload the video to YouTube? [Y/n]: "):
+            # Find thumbnail for the first day's midpoint
+            first_day_midpoint = (datetime.datetime.strptime(args.start, "%H:%M") + datetime.datetime.strptime(args.end, "%H:%M")) // 2
+            thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
+            thumbnail_path = os.path.join(stills_dir, thumbnail_filename)
+            print(f"Using thumbnail: {thumbnail_path}")
+            sys.exit(1) # TMP
+
+            # Upload the video to YouTube
+            video_title = VIDEO_TITLE_FORMAT.format(start_date=start_date.strftime("%Y.%m.%d"), end_date=end_date.strftime("%Y.%m.%d"))
+            print(f"Uploading video to YouTube with title: {video_title}")
+            video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
+
+            if video_id:
+                print(f"Video uploaded successfully. Video ID: {video_id}")
+            else:
+                print("Failed to upload video.", file=sys.stderr)
+                sys.exit(1)
 
