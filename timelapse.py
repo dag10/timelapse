@@ -76,7 +76,7 @@ for i in range(args.days):
         include_args = [f"--include={pattern}" for pattern in include_patterns]
 
         rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", stills_dir]
-        print(f"Running rsync: {' '.join(rsync_cmd)}")
+        #print(f"Running rsync: {' '.join(rsync_cmd)}")
         result = subprocess.run(rsync_cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
