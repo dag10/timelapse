@@ -40,9 +40,6 @@ def upload_to_youtube(video_path, title, thumbnail_path=None, playlist_id=None):
         if response is not None:
             if "id" in response:
                 print(f"Video uploaded: https://youtu.be/{response['id']}")
-                if playlist_id:
-                    print(f"Added to playlist: https://www.youtube.com/playlist?list={playlist_id}")
-                return response['id']
             else:
                 print("The upload failed with an unexpected response: %s" % response)
                 return None
@@ -67,6 +64,9 @@ def upload_to_youtube(video_path, title, thumbnail_path=None, playlist_id=None):
             }
         }
         youtube.playlistItems().insert(part="snippet", body=body).execute()
+        print(f"Added to playlist: https://www.youtube.com/playlist?list={playlist_id}")
+
+    return response['id']
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Upload a video to YouTube")
