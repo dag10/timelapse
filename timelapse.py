@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from sun import calculate_sunrise, calculate_sunset
 
 def datetime_range(start, end, delta):
@@ -70,12 +71,20 @@ for i in range(args.days):
 print(f"Total files transferred: {total_files_transferred}")
 
 if not args.no_video:
+    # Read and sort the filenames
+    input_files = sorted(os.listdir(stills_dir))
+
+    # Create a temporary file with the sorted filenames
+    with tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
+        for file in input_files:
+            temp_file.write(f"file '{os.path.join(stills_dir, file)}'\n")
+
     # Create timelapse using ffmpeg
     video_filename = f"timelapse_{os.path.basename(dest_dir)}.mov"
     video_path = os.path.join(dest_dir, video_filename)
 
     ffmpeg_cmd = [
-        "ffmpeg", "-y", "-pattern_type", "glob", "-i", f"{stills_dir}/01_*.jpg",
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", temp_file.name,
         "-s", "1920x1080", "-r", "60", "-vf", "setpts=PTS/60", "-c:v", "libx264", "-preset", "slow",
         "-crf", "18", "-pix_fmt", "yuv420p", video_path
     ]
