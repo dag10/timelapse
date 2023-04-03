@@ -7,6 +7,7 @@ import sys
 import tempfile
 from sun import calculate_sunrise, calculate_sunset
 from youtube import upload_to_youtube
+from googleapiclient.errors import ResumableUploadError
 
 # Constants
 BASE_DIR = "/Volumes/DrewHA/Webcam/"
@@ -131,7 +132,11 @@ if not args.no_upload:
         # Upload the video to YouTube
         video_title = VIDEO_TITLE_FORMAT.format(start_date=start_date.strftime("%Y.%m.%d"), end_date=end_date.strftime("%Y.%m.%d"))
         print(f"Uploading video to YouTube with title: {video_title}")
-        video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
+        try:
+            video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
+        except ResumableUploadError as e:
+            print(f"Failed to upload video due to error: {e}")
+            sys.exit(1)
 
         if video_id:
             print(f"Video uploaded successfully. Video ID: {video_id}")
