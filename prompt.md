@@ -1,4 +1,4 @@
-Here's the current README.md:
+For a project, here's a README.md:
 
 ```
 # Construction Timelapse Generator
@@ -254,6 +254,4 @@ if not args.no_upload:
             sys.exit(1)
 ```
 
-Print out the README.md with any updates needed, such as missing launch args, descriptions, overviews, etc.
-
-Print the entire updated README.md out inside exactly one code block (```). For any inner code blocks inside the README.md, output XXX instead of ```.
+Are there any updates we need to make to the README.md?

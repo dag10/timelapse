@@ -6,7 +6,8 @@ this README.
 Construction Timelapse Generator is a Python script that creates timelapse videos
 from a series of webcam photos taken at specified intervals. The script handles
 copying photos from a source directory, processing them, and creating a high-quality
-timelapse video using the powerful ffmpeg library.
+timelapse video using the powerful ffmpeg library. It also supports uploading the
+generated timelapse video to YouTube.
 
 ## Features
 
@@ -14,12 +15,14 @@ timelapse video using the powerful ffmpeg library.
 - Allows custom start and end times for each day
 - Supports multiple days of photos
 - Generates a 1080p, 60fps H.264 video
+- Uploads the generated video to YouTube (optional)
 
 ## Requirements
 
 - Python 3
 - ffmpeg
 - rsync
+- Google API client library for Python (for YouTube uploading)
 
 ## Installation
 
@@ -28,7 +31,6 @@ timelapse video using the powerful ffmpeg library.
 ```
 git clone https://github.com/dag10/timelapse.git
 ```
-
 
 2. Make sure you have Python 3, ffmpeg, and rsync installed on your system.
 
