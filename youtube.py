@@ -50,7 +50,10 @@ def upload_to_youtube(video_path, title, thumbnail_path=None, playlist_id=None):
     if thumbnail_path:
         video_id = response["id"]
         media = MediaFileUpload(thumbnail_path, mimetype="image/jpeg")
-        youtube.thumbnails().set(videoId=video_id, media_body=media).execute()
+        try:
+            youtube.thumbnails().set(videoId=video_id, media_body=media).execute()
+        except HttpError as e:
+            print(f"Warning: Failed to set the thumbnail. Error: {e}")
 
     if playlist_id:
         video_id = response["id"]
@@ -63,8 +66,11 @@ def upload_to_youtube(video_path, title, thumbnail_path=None, playlist_id=None):
                 }
             }
         }
-        youtube.playlistItems().insert(part="snippet", body=body).execute()
-        print(f"Added to playlist: https://www.youtube.com/playlist?list={playlist_id}")
+        try:
+            youtube.playlistItems().insert(part="snippet", body=body).execute()
+            print(f"Added to playlist: https://www.youtube.com/playlist?list={playlist_id}")
+        except HttpError as e:
+            print(f"Warning: Failed to add the video to the playlist. Error: {e}")
 
     return response['id']
 
