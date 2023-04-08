@@ -1,6 +1,6 @@
-It now ignores the --no-copy arg. It also breaks the youtube uploading by changing how we call out to the youtube upload function in our youtube.py file. I want you to make the --interval changes requested, but make the change as MINIMAL as possible for the file I gave you, and don't change any external library calls we're making or how we're making them.
+Modify timelapsy.py so that when it's choosing the path for a thumbnail when uploading to youtube, it uses the current logic to choose a thumbnail image BUT if that file does not exist, it just chooses the earliest photo in the stills directory.
 
-Again, here's timelapse.py:
+Here's the latest timelapse.py for your reference. Be fairly minimal with your change:
 
 ```
 import argparse
@@ -45,6 +45,7 @@ parser.add_argument("--end", type=str, help="Time of the last photo to copy for 
 parser.add_argument("--no-video", action="store_true", help="Don't create timelapse video")
 parser.add_argument("--no-copy", action="store_true", help="Don't transfer files, assume they're already transferred")
 parser.add_argument("--no-upload", action="store_true", help="Don't upload the video to YouTube")
+parser.add_argument("--interval", type=int, default=1, help="Interval between photos in minutes (default: 1)")
 args = parser.parse_args()
 
 start_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
@@ -77,7 +78,7 @@ for i in range(args.days):
     if not args.no_copy:
         print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
 
-        include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=1))]
+        include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=args.interval))]
         include_args = [f"--include={pattern}" for pattern in include_patterns]
 
         rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", stills_dir]

@@ -128,6 +128,12 @@ if not args.no_upload:
         first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(args.start, "%H:%M").time()) + (datetime.datetime.strptime(args.end, "%H:%M") - datetime.datetime.strptime(args.start, "%H:%M")) // 2).time()
         thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
         thumbnail_path = os.path.join(stills_dir, thumbnail_filename)
+
+        # Check if the chosen thumbnail file exists, and if not, choose the earliest photo in the stills directory
+        if not os.path.exists(thumbnail_path):
+            earliest_photo = sorted(os.listdir(stills_dir))[0]
+            thumbnail_path = os.path.join(stills_dir, earliest_photo)
+
         print(f"Using thumbnail: {thumbnail_path}")
 
         # Upload the video to YouTube
