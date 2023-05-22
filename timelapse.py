@@ -10,7 +10,9 @@ from youtube import upload_to_youtube
 from googleapiclient.errors import ResumableUploadError
 
 # Constants
-BASE_DIR = "/Volumes/DrewHA/Webcam/"
+SRC_STILLS_CONTAINER_DIR = "/Volumes/DrewHA/Webcam/"
+DEST_STILLS_CONTAINER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stills")
+DEST_VIDEO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videos")
 PLAYLIST_ID = "PLnZFyIYD4hEnHwQw7_4GVGhtO-Qk8iXtt"
 VIDEO_TITLE_FORMAT = "{start_date} - {end_date} Construction Timelapse"
 
@@ -45,21 +47,22 @@ args = parser.parse_args()
 
 start_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
 end_date = start_date + datetime.timedelta(days=args.days - 1)
-dest_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{start_date.strftime('%Y_%m_%d')}-{end_date.strftime('%Y_%m_%d')}")
-stills_dir = os.path.join(dest_dir, "stills")
+date_range = f"{start_date.strftime('%Y_%m_%d')}-{end_date.strftime('%Y_%m_%d')}"
 
-if not os.path.exists(dest_dir):
-    os.makedirs(dest_dir)
-if not os.path.exists(stills_dir):
-    os.makedirs(stills_dir)
+dst_stills_dir = os.path.join(DEST_STILLS_CONTAINER_DIR, date_range)
 
-print(f"Destination directory: {dest_dir}")
+if not os.path.exists(DEST_VIDEO_DIR):
+    os.makedirs(DEST_VIDEO_DIR)
+if not os.path.exists(dst_stills_dir):
+    os.makedirs(dst_stills_dir)
+
+print(f"Destination directory: {DEST_VIDEO_DIR}")
 
 total_files_transferred = 0
 for i in range(args.days):
     date = start_date + datetime.timedelta(days=i)
     date_str = date.strftime("%Y-%m-%d")
-    src_dir = f"{BASE_DIR}{date_str}"
+    src_dir = f"{SRC_STILLS_CONTAINER_DIR}{date_str}"
 
     if not args.start:
         sunrise = calculate_sunrise(date)
@@ -76,7 +79,7 @@ for i in range(args.days):
         include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=args.interval))]
         include_args = [f"--include={pattern}" for pattern in include_patterns]
 
-        rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", stills_dir]
+        rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", dst_stills_dir]
         #print(f"Running rsync: {' '.join(rsync_cmd)}")
         result = subprocess.run(rsync_cmd, capture_output=True, text=True)
 
@@ -92,20 +95,20 @@ for i in range(args.days):
 print(f"Total files transferred: {total_files_transferred}")
 
 # Create timelapse using ffmpeg
-video_filename = f"timelapse_{os.path.basename(dest_dir)}.mov"
-video_path = os.path.join(dest_dir, video_filename)
+video_filename = f"timelapse_{date_range}.mov"
+video_path = os.path.join(DEST_VIDEO_DIR, video_filename)
 
 if not args.no_video:
     # Read and sort the filenames
-    input_files = sorted(os.listdir(stills_dir))
+    input_files = sorted(os.listdir(dst_stills_dir))
 
     # Create a temporary file with the sorted filenames
     with tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
         for file in input_files:
-            temp_file.write(f"file '{os.path.join(stills_dir, file)}'\n")
+            temp_file.write(f"file '{os.path.join(dst_stills_dir, file)}'\n")
 
     ffmpeg_cmd = [
-        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{stills_dir}/%*.jpg",
+        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{dst_stills_dir}/%*.jpg",
         "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
     ]
 
@@ -127,12 +130,12 @@ if not args.no_upload:
         # Find thumbnail for the first day's midpoint
         first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(args.start, "%H:%M").time()) + (datetime.datetime.strptime(args.end, "%H:%M") - datetime.datetime.strptime(args.start, "%H:%M")) // 2).time()
         thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
-        thumbnail_path = os.path.join(stills_dir, thumbnail_filename)
+        thumbnail_path = os.path.join(dst_stills_dir, thumbnail_filename)
 
         # Check if the chosen thumbnail file exists, and if not, choose the earliest photo in the stills directory
         if not os.path.exists(thumbnail_path):
-            earliest_photo = sorted(os.listdir(stills_dir))[0]
-            thumbnail_path = os.path.join(stills_dir, earliest_photo)
+            earliest_photo = sorted(os.listdir(dst_stills_dir))[0]
+            thumbnail_path = os.path.join(dst_stills_dir, earliest_photo)
 
         print(f"Using thumbnail: {thumbnail_path}")
 
