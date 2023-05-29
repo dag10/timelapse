@@ -51,106 +51,108 @@ date_range = f"{start_date.strftime('%Y_%m_%d')}-{end_date.strftime('%Y_%m_%d')}
 
 dst_stills_dir = os.path.join(DEST_STILLS_CONTAINER_DIR, date_range)
 
-if not os.path.exists(DEST_VIDEO_DIR):
-    os.makedirs(DEST_VIDEO_DIR)
-if not os.path.exists(dst_stills_dir):
-    os.makedirs(dst_stills_dir)
+if __name__ == "__main__":
 
-print(f"Destination directory: {DEST_VIDEO_DIR}")
+    if not os.path.exists(DEST_VIDEO_DIR):
+        os.makedirs(DEST_VIDEO_DIR)
+    if not os.path.exists(dst_stills_dir):
+        os.makedirs(dst_stills_dir)
 
-total_files_transferred = 0
-for i in range(args.days):
-    date = start_date + datetime.timedelta(days=i)
-    date_str = date.strftime("%Y-%m-%d")
-    src_dir = f"{SRC_STILLS_CONTAINER_DIR}{date_str}"
+    print(f"Destination directory: {DEST_VIDEO_DIR}")
 
-    if not args.start:
-        sunrise = calculate_sunrise(date)
-        sunrise_time = datetime.datetime.strptime(sunrise, "%H:%M")
-        args.start = (sunrise_time - datetime.timedelta(hours=1)).strftime("%H:%M")
-    if not args.end:
-        sunset = calculate_sunset(date)
-        sunset_time = datetime.datetime.strptime(sunset, "%H:%M")
-        args.end = (sunset_time + datetime.timedelta(hours=1)).strftime("%H:%M")
+    total_files_transferred = 0
+    for i in range(args.days):
+        date = start_date + datetime.timedelta(days=i)
+        date_str = date.strftime("%Y-%m-%d")
+        src_dir = f"{SRC_STILLS_CONTAINER_DIR}{date_str}"
 
-    if not args.no_copy:
-        print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
+        if not args.start:
+            sunrise = calculate_sunrise(date)
+            sunrise_time = datetime.datetime.strptime(sunrise, "%H:%M")
+            args.start = (sunrise_time - datetime.timedelta(hours=1)).strftime("%H:%M")
+        if not args.end:
+            sunset = calculate_sunset(date)
+            sunset_time = datetime.datetime.strptime(sunset, "%H:%M")
+            args.end = (sunset_time + datetime.timedelta(hours=1)).strftime("%H:%M")
 
-        include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=args.interval))]
-        include_args = [f"--include={pattern}" for pattern in include_patterns]
+        if not args.no_copy:
+            print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
 
-        rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", dst_stills_dir]
-        #print(f"Running rsync: {' '.join(rsync_cmd)}")
-        result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+            include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=args.interval))]
+            include_args = [f"--include={pattern}" for pattern in include_patterns]
+
+            rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", dst_stills_dir]
+            #print(f"Running rsync: {' '.join(rsync_cmd)}")
+            result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                print(f"Error: {result.stderr}", file=sys.stderr)
+                sys.exit(1)
+
+            # Parse the output to get the number of transferred files
+            transferred_files = len(re.findall(r"01_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}.jpg", result.stdout))
+            total_files_transferred += transferred_files
+            print(f"Transferred {transferred_files} files for {date_str}")
+
+    print(f"Total files transferred: {total_files_transferred}")
+
+    # Create timelapse using ffmpeg
+    video_filename = f"timelapse_{date_range}.mov"
+    video_path = os.path.join(DEST_VIDEO_DIR, video_filename)
+
+    if not args.no_video:
+        # Read and sort the filenames
+        input_files = sorted(os.listdir(dst_stills_dir))
+
+        # Create a temporary file with the sorted filenames
+        with tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
+            for file in input_files:
+                temp_file.write(f"file '{os.path.join(dst_stills_dir, file)}'\n")
+
+        ffmpeg_cmd = [
+            "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{dst_stills_dir}/%*.jpg",
+            "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
+        ]
+
+        print(f"Running ffmpeg: {' '.join(ffmpeg_cmd)}")
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
             print(f"Error: {result.stderr}", file=sys.stderr)
             sys.exit(1)
 
-        # Parse the output to get the number of transferred files
-        transferred_files = len(re.findall(r"01_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}.jpg", result.stdout))
-        total_files_transferred += transferred_files
-        print(f"Transferred {transferred_files} files for {date_str}")
+        print(f"Timelapse video created: {video_path}")
 
-print(f"Total files transferred: {total_files_transferred}")
+        # Open the video using the system's 'open' command
+        open_cmd = ["open", video_path]
+        subprocess.run(open_cmd)
 
-# Create timelapse using ffmpeg
-video_filename = f"timelapse_{date_range}.mov"
-video_path = os.path.join(DEST_VIDEO_DIR, video_filename)
+    if not args.no_upload:
+        if confirm("Do you want to upload the video to YouTube? [Y/n]: "):
+            # Find thumbnail for the first day's midpoint
+            first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(args.start, "%H:%M").time()) + (datetime.datetime.strptime(args.end, "%H:%M") - datetime.datetime.strptime(args.start, "%H:%M")) // 2).time()
+            thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
+            thumbnail_path = os.path.join(dst_stills_dir, thumbnail_filename)
 
-if not args.no_video:
-    # Read and sort the filenames
-    input_files = sorted(os.listdir(dst_stills_dir))
+            # Check if the chosen thumbnail file exists, and if not, choose the earliest photo in the stills directory
+            if not os.path.exists(thumbnail_path):
+                earliest_photo = sorted(os.listdir(dst_stills_dir))[0]
+                thumbnail_path = os.path.join(dst_stills_dir, earliest_photo)
 
-    # Create a temporary file with the sorted filenames
-    with tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
-        for file in input_files:
-            temp_file.write(f"file '{os.path.join(dst_stills_dir, file)}'\n")
+            print(f"Using thumbnail: {thumbnail_path}")
 
-    ffmpeg_cmd = [
-        "ffmpeg", "-y", "-r", "60", "-f", "image2", "-s", "1920x1080", "-i", f"{dst_stills_dir}/%*.jpg",
-        "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", video_path
-    ]
+            # Upload the video to YouTube
+            video_title = VIDEO_TITLE_FORMAT.format(start_date=start_date.strftime("%Y.%m.%d"), end_date=end_date.strftime("%Y.%m.%d"))
+            print(f"Uploading video to YouTube with title: {video_title}")
+            try:
+                video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
+            except ResumableUploadError as e:
+                print(f"Failed to upload video due to error: {e}")
+                sys.exit(1)
 
-    print(f"Running ffmpeg: {' '.join(ffmpeg_cmd)}")
-    result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print(f"Error: {result.stderr}", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Timelapse video created: {video_path}")
-
-    # Open the video using the system's 'open' command
-    open_cmd = ["open", video_path]
-    subprocess.run(open_cmd)
-
-if not args.no_upload:
-    if confirm("Do you want to upload the video to YouTube? [Y/n]: "):
-        # Find thumbnail for the first day's midpoint
-        first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(args.start, "%H:%M").time()) + (datetime.datetime.strptime(args.end, "%H:%M") - datetime.datetime.strptime(args.start, "%H:%M")) // 2).time()
-        thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
-        thumbnail_path = os.path.join(dst_stills_dir, thumbnail_filename)
-
-        # Check if the chosen thumbnail file exists, and if not, choose the earliest photo in the stills directory
-        if not os.path.exists(thumbnail_path):
-            earliest_photo = sorted(os.listdir(dst_stills_dir))[0]
-            thumbnail_path = os.path.join(dst_stills_dir, earliest_photo)
-
-        print(f"Using thumbnail: {thumbnail_path}")
-
-        # Upload the video to YouTube
-        video_title = VIDEO_TITLE_FORMAT.format(start_date=start_date.strftime("%Y.%m.%d"), end_date=end_date.strftime("%Y.%m.%d"))
-        print(f"Uploading video to YouTube with title: {video_title}")
-        try:
-            video_id = upload_to_youtube(video_path, video_title, thumbnail_path, PLAYLIST_ID)
-        except ResumableUploadError as e:
-            print(f"Failed to upload video due to error: {e}")
-            sys.exit(1)
-
-        if video_id:
-            print(f"Video uploaded successfully. Video ID: {video_id}")
-        else:
-            print("Failed to upload video.", file=sys.stderr)
-            sys.exit(1)
+            if video_id:
+                print(f"Video uploaded successfully. Video ID: {video_id}")
+            else:
+                print("Failed to upload video.", file=sys.stderr)
+                sys.exit(1)
 
