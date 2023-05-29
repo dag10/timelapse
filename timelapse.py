@@ -53,6 +53,8 @@ start_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
 end_date = start_date + datetime.timedelta(days=args.days - 1)
 date_range = f"{start_date.strftime('%Y_%m_%d')}-{end_date.strftime('%Y_%m_%d')}"
 
+print(f"Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
 dst_stills_dir = os.path.join(DEST_STILLS_CONTAINER_DIR, date_range)
 
 if __name__ == "__main__":
