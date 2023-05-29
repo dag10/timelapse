@@ -13,3 +13,7 @@ venv
 config.json
 client_secret.json
 
+stills
+videos
+
+
