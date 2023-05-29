@@ -28,8 +28,7 @@ def get_recent_monday():
     if weekday >= 4:  # It's Friday, Saturday or Sunday
         return today - datetime.timedelta(days=(weekday - 4))
     else:  # It's Monday through Thursday
-        return today - datetime.timedelta(days=(weekday + 3 + 7))
-
+        return today - datetime.timedelta(days=(weekday + 7))
 
 def confirm(prompt):
     while True:
