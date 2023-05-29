@@ -61,8 +61,8 @@ python3 timelapse.py --date 2023-03-27 --days 1 --start 07:30 --end 19:30
 
 | Argument   | Description | Default | Format |
 |------------|-------------|---------|--------|
-| `--date`   | The first date to copy photos from | most recent Monday | `YYYY-MM-DD` |
-| `--days`   | The number of days from the `--date` to copy photos from, inclusive | 5 | integer |
+| `--date`   | The first date to copy photos from. The default is the most recent Monday before the most recent Friday (inclusive if it's currently Friday). For example, if today is Friday, the default date will be this Monday. But if today is Tuesday, the default date will be the Monday from 8 days ago. | most recent Monday before the most recent Friday | `YYYY-MM-DD` |
+| `--days`   | The number of days from the `--date` to copy photos from, inclusive. The default is the number of full days between `--date` and today (inclusive), but with a maximum of 6. | full days between `--date` and today, maximum 6 | integer |
 | `--start`  | The time of the first photo to copy for each day, inclusive | one hour before sunrise | 24hr format |
 | `--end`    | The time of the last photo to copy for each day, inclusive | one hour after sunset | 24hr format |
 | `--no-video` | If set, the script will only transfer files and not create a timelapse video | N/A | flag |
