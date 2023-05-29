@@ -25,10 +25,10 @@ def datetime_range(start, end, delta):
 def get_recent_monday():
     today = datetime.date.today()
     weekday = today.weekday()
-    if weekday > 0:  # It's Tuesday through Sunday
+    if weekday >= 4:  # It's Friday, Saturday or Sunday
         return today - datetime.timedelta(days=weekday)
-    else:  # It's Monday
-        return today - datetime.timedelta(days=7)
+    else:
+        return today - datetime.timedelta(days=weekday + 7)
 
 def confirm(prompt):
     while True:
