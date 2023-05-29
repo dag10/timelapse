@@ -40,7 +40,7 @@ def confirm(prompt):
 
 parser = argparse.ArgumentParser(description="Create timelapse from webcam photos")
 parser.add_argument("--date", type=str, default=get_recent_monday().strftime("%Y-%m-%d"), help="First date to copy photos from (default: most recent Monday)")
-parser.add_argument("--days", type=int, default=min((datetime.date.today() - get_recent_monday()).days + 1, 6), help="Number of days from the --date to copy photos from, inclusive (default: full days between the --date and today, with a maximum of 6)")
+parser.add_argument("--days", type=int, default=min((datetime.date.today() - get_recent_monday()).days + 1, 7), help="Number of days from the --date to copy photos from, inclusive (default: full days between the --date and today, with a maximum of 7)")
 parser.add_argument("--start", type=str, help="Time of the first photo to copy for each day, inclusive (24hr format)")
 parser.add_argument("--end", type=str, help="Time of the last photo to copy for each day, inclusive (24hr format)")
 parser.add_argument("--no-video", action="store_true", help="Don't create timelapse video")
