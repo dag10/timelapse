@@ -47,6 +47,7 @@ parser.add_argument("--no-video", action="store_true", help="Don't create timela
 parser.add_argument("--no-copy", action="store_true", help="Don't transfer files, assume they're already transferred")
 parser.add_argument("--no-upload", action="store_true", help="Don't upload the video to YouTube")
 parser.add_argument("--interval", type=int, default=1, help="Interval between photos in minutes (default: 1)")
+parser.add_argument("--darkness-minutes", type=int, default=60, help="Amount of minutes we should start each day's timelapse before sunrise and after sunset (default: 60)")
 args = parser.parse_args()
 
 start_date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
@@ -72,19 +73,22 @@ if __name__ == "__main__":
         date_str = date.strftime("%Y-%m-%d")
         src_dir = f"{SRC_STILLS_CONTAINER_DIR}{date_str}"
 
-        if not args.start:
+        time_start = args.start
+        time_end = args.end
+
+        if not time_start:
             sunrise = calculate_sunrise(date)
             sunrise_time = datetime.datetime.strptime(sunrise, "%H:%M")
-            args.start = (sunrise_time - datetime.timedelta(hours=1)).strftime("%H:%M")
-        if not args.end:
+            time_start = (sunrise_time - datetime.timedelta(minutes=args.darkness_minutes)).strftime("%H:%M")
+        if not time_end:
             sunset = calculate_sunset(date)
             sunset_time = datetime.datetime.strptime(sunset, "%H:%M")
-            args.end = (sunset_time + datetime.timedelta(hours=1)).strftime("%H:%M")
+            time_end = (sunset_time + datetime.timedelta(minutes=args.darkness_minutes)).strftime("%H:%M")
 
         if not args.no_copy:
-            print(f"Syncing photos for {date_str} between {args.start} and {args.end}")
+            print(f"Syncing photos for {date_str} between {time_start} and {time_end}")
 
-            include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(args.start, "%H:%M"), datetime.datetime.strptime(args.end, "%H:%M"), datetime.timedelta(minutes=args.interval))]
+            include_patterns = [f"01_{date_str}_{t.hour:02d}-{t.minute:02d}-??.jpg" for t in datetime_range(datetime.datetime.strptime(time_start, "%H:%M"), datetime.datetime.strptime(time_end, "%H:%M"), datetime.timedelta(minutes=args.interval))]
             include_args = [f"--include={pattern}" for pattern in include_patterns]
 
             rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", dst_stills_dir]
