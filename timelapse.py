@@ -67,6 +67,9 @@ if __name__ == "__main__":
 
     print(f"Destination directory: {DEST_VIDEO_DIR}")
 
+    time_first_day_start = args.start
+    time_first_day_end = args.end
+
     total_files_transferred = 0
     for i in range(args.days):
         date = start_date + datetime.timedelta(days=i)
@@ -84,6 +87,11 @@ if __name__ == "__main__":
             sunset = calculate_sunset(date)
             sunset_time = datetime.datetime.strptime(sunset, "%H:%M")
             time_end = (sunset_time + datetime.timedelta(minutes=args.darkness_minutes)).strftime("%H:%M")
+
+        if not time_first_day_start:
+            time_first_day_start = time_start
+        if not time_first_day_end:
+            time_first_day_end = time_end
 
         if not args.no_copy:
             print(f"Syncing photos for {date_str} between {time_start} and {time_end}")
@@ -140,7 +148,7 @@ if __name__ == "__main__":
     if not args.no_upload:
         if confirm("Do you want to upload the video to YouTube? [Y/n]: "):
             # Find thumbnail for the first day's midpoint
-            first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(args.start, "%H:%M").time()) + (datetime.datetime.strptime(args.end, "%H:%M") - datetime.datetime.strptime(args.start, "%H:%M")) // 2).time()
+            first_day_midpoint = (datetime.datetime.combine(datetime.date.today(), datetime.datetime.strptime(time_first_day_start, "%H:%M").time()) + (datetime.datetime.strptime(time_first_day_end, "%H:%M") - datetime.datetime.strptime(time_first_day_start, "%H:%M")) // 2).time()
             thumbnail_filename = f"01_{start_date.strftime('%Y-%m-%d')}_{first_day_midpoint.hour:02d}-{first_day_midpoint.minute:02d}-00.jpg"
             thumbnail_path = os.path.join(dst_stills_dir, thumbnail_filename)
 
