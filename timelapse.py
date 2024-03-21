@@ -10,7 +10,8 @@ from youtube import upload_to_youtube
 from googleapiclient.errors import ResumableUploadError
 
 # Constants
-SRC_STILLS_CONTAINER_DIR = "/Volumes/DrewHA/Webcam/"
+#SRC_STILLS_CONTAINER_DIR = "/Volumes/DrewHA/Webcam/" # Pull directly from the Home Assistant box
+SRC_STILLS_CONTAINER_DIR = "/Volumes/Home Assistant/Clone/DrewHA/Webcam/" # Pull from the hourly backups on DrewBox
 DEST_STILLS_CONTAINER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stills")
 DEST_VIDEO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videos")
 PLAYLIST_ID = "PLnZFyIYD4hEnHwQw7_4GVGhtO-Qk8iXtt"
