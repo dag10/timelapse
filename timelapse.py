@@ -5,17 +5,71 @@ import re
 import subprocess
 import sys
 import tempfile
+import atexit
+import urllib
 from sun import calculate_sunrise, calculate_sunset
 from youtube import upload_to_youtube
 from googleapiclient.errors import ResumableUploadError
 
 # Constants
-#SRC_STILLS_CONTAINER_DIR = "/Volumes/DrewHA/Webcam/" # Pull directly from the Home Assistant box
-SRC_STILLS_CONTAINER_DIR = "/Volumes/Home Assistant/Clone/DrewHA/Webcam/" # Pull from the hourly backups on DrewBox
 DEST_STILLS_CONTAINER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stills")
 DEST_VIDEO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "videos")
 PLAYLIST_ID = "PLnZFyIYD4hEnHwQw7_4GVGhtO-Qk8iXtt"
 VIDEO_TITLE_FORMAT = "{start_date} - {end_date} Construction Timelapse"
+SMB_MOUNT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mount")
+SMB_HOSTS = {
+    'homeassistant': {'user': 'drewbox', 'address': 'homeassistant.local', 'path': 'Share/motioneye/kaye/'},
+    'drewbox': {'user': '', 'address': 'drewbox', 'path': 'Home Assistant/Clone/DrewHA/Webcam/'},
+}
+SMB_HOST = SMB_HOSTS['drewbox']
+
+def unmount():
+    if os.path.isdir(SMB_MOUNT_DIR):
+        try:
+            umount_result = subprocess.run(['diskutil', 'unmount', 'force', SMB_MOUNT_DIR], capture_output=True)
+        except Exception as e:
+            pass
+        try:
+            os.rmdir(SMB_MOUNT_DIR)
+        except Exception as e:
+            msg = ""
+            msg += (
+                "Failed to rmdir the mount dir. Did it fail to unmount?\n"
+                "The output from {} was:".format(umount_result.args) )
+            if umount_result.stdout:
+                msg += "\n" + umount_result.stdout.decode()
+            if umount_result.stderr:
+                msg += "\n" + umount_result.stderr.decode()
+            raise Exception(msg)
+    get_webcam_dir._mounted_webcam_dir = None
+unmount.registered = False
+
+def get_webcam_dir():
+    """Mounts (if needed) and returns the dir to the NAS Webcam photos."""
+    if get_webcam_dir._mounted_webcam_dir:
+        return get_webcam_dir._mounted_webcam_dir
+
+    if not unmount.registered:
+        atexit.register(unmount)
+        unmount.registered = True
+
+    if os.path.isdir(SMB_MOUNT_DIR):
+        unmount()
+    
+    os.mkdir(SMB_MOUNT_DIR)
+
+    smb_path_parts = os.path.normpath(SMB_HOST['path']).split('/')
+    smb_user = SMB_HOST['user']
+    smb_url = f"//{smb_user + '@' if smb_user else ''}{SMB_HOST['address']}/{urllib.parse.quote(smb_path_parts[0])}"
+    subprocess.run(['mount_smbfs', smb_url, SMB_MOUNT_DIR], check=True)
+
+    webcam_dir = os.path.join(SMB_MOUNT_DIR, *smb_path_parts[1:])
+    if not os.path.isdir(webcam_dir):
+        raise Exception(f"Mounted NAS, but directory could not be found at \"{SMB_HOST['path']}\"")
+
+    get_webcam_dir._mounted_webcam_dir = webcam_dir
+    return get_webcam_dir._mounted_webcam_dir
+get_webcam_dir._mounted_webcam_dir = None
 
 def datetime_range(start, end, delta):
     current = start
@@ -75,7 +129,7 @@ if __name__ == "__main__":
     for i in range(args.days):
         date = start_date + datetime.timedelta(days=i)
         date_str = date.strftime("%Y-%m-%d")
-        src_dir = f"{SRC_STILLS_CONTAINER_DIR}{date_str}"
+        src_dir = f"{get_webcam_dir()}/{date_str}"
 
         time_start = args.start
         time_end = args.end
