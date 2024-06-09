@@ -61,7 +61,7 @@ def get_webcam_dir():
     smb_path_parts = os.path.normpath(SMB_HOST['path']).split('/')
     smb_user = SMB_HOST['user']
     smb_url = f"//{smb_user + '@' if smb_user else ''}{SMB_HOST['address']}/{urllib.parse.quote(smb_path_parts[0])}"
-    subprocess.run(['mount_smbfs', smb_url, SMB_MOUNT_DIR], check=True)
+    subprocess.run(['mount_smbfs', smb_url, SMB_MOUNT_DIR], check=True, timeout=10)
 
     webcam_dir = os.path.join(SMB_MOUNT_DIR, *smb_path_parts[1:])
     if not os.path.isdir(webcam_dir):
@@ -70,6 +70,12 @@ def get_webcam_dir():
     get_webcam_dir._mounted_webcam_dir = webcam_dir
     return get_webcam_dir._mounted_webcam_dir
 get_webcam_dir._mounted_webcam_dir = None
+
+# dir = get_webcam_dir()
+# print('dir:', dir)
+# print('list:', os.listdir(dir)[:10])
+# input('...')
+# sys.exit(0)
 
 def datetime_range(start, end, delta):
     current = start
@@ -155,7 +161,9 @@ if __name__ == "__main__":
             include_args = [f"--include={pattern}" for pattern in include_patterns]
 
             rsync_cmd = ["rsync", "-av", "--no-relative", *include_args, "--exclude=*", f"{src_dir}/", dst_stills_dir]
-            #print(f"Running rsync: {' '.join(rsync_cmd)}")
+            # print(f"Running rsync: {' '.join(rsync_cmd)}")
+            # print(f"A few files in the dir:", os.listdir(src_dir)[:10])
+            # sys.exit(0)
             result = subprocess.run(rsync_cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
